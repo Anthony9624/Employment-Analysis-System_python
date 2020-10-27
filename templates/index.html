@@ -1,0 +1,177 @@
+<!DOCTYPE html >
+<html xmlns="http://www.w3.org/1999/xhtml">
+{% load staticfiles %}
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=emulateIE7" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>就业招聘信息分析</title>
+<link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/index.css' %}" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- 可选的 Bootstrap 主题文件（一般不 用引入） -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">就业招聘信息分析</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+          <li class="active"><a href="/">返回搜索页</a></li>
+        <li><a href={% url 'chart' %}>图表页<span class="sr-only">(current)</span></a></li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+<div id="container">
+	<div id="bd">
+        <div id="main">
+        	<h1 class="title">
+            	<div class="logo large"></div>
+            </h1>
+            <div class="nav ue-clear">
+            	<ul class="searchList">
+                    <li class="searchItem current" data-type="jobs">职位</li>
+                    <li class="searchItem" data-type="careers">宣讲会</li>
+                    <li class="searchItem" data-type="jobfairs">双选会</li>
+                </ul>
+            </div>
+            <div class="inputArea">
+            	<input type="text" class="searchInput" />
+                <input type="button" class="btn btn-primary btn-lg" onclick="add_search()" value="搜索"/>
+                <ul class="dataList">
+                </ul>
+            </div>
+
+            <div class="historyArea">
+                <p class="history mysearch">
+                	<label>我的搜索：</label>
+                    <span class="all-search">
+                    </span>
+
+                </p>
+            </div>
+        </div><!-- End of main -->
+    </div><!--End of bd-->
+
+
+</div>
+</body>
+<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/global.js' %}"></script>
+<script type="text/javascript">
+    var suggest_url = "{% url 'suggest' %}"
+    var search_url = "{% url 'search' %}"
+	$('.searchList').on('click', '.searchItem', function(){
+		$('.searchList .searchItem').removeClass('current');
+		$(this).addClass('current');
+	});
+    function removeByValue(arr, val) {
+      for(var i=0; i<arr.length; i++) {
+        if(arr[i] == val) {
+          arr.splice(i, 1);
+          break;
+        }
+      }
+    }
+    // 搜索建议
+    $(function(){
+        $('.searchInput').bind(' input propertychange ',function(){
+            var searchText = $(this).val();
+            var tmpHtml = ""
+            $.ajax({
+                cache: false,
+                type: 'get',
+                dataType:'json',
+                url:suggest_url+"?s="+searchText+"&s_type="+$(".searchItem.current").attr('data-type'),
+                async: true,
+                success: function(data) {
+                    for (var i=0;i<data.length;i++){
+                        tmpHtml += '<li><a href="'+search_url+'?q='+data[i]+'&s_type='+$(".searchItem.current").attr('data-type')+'">'+data[i]+'</a></li>'
+                    }
+                    $(".dataList").html("")
+                    $(".dataList").append(tmpHtml);
+                    if (data.length == 0){
+                        $('.dataList').hide()
+                    }else {
+                        $('.dataList').show()
+                    }
+                }
+            });
+        } );
+    })
+    hideElement($('.dataList'), $('.searchInput'));
+</script>
+<script>
+    var searchArr;
+    //定义一个search的，判断浏览器有无数据存储（搜索历史）
+    if(localStorage.search){
+    //如果有，转换成 数组的形式存放到searchArr的数组里（localStorage以字符串的形式存储，所以要把它转换成数组的形式）
+        searchArr= localStorage.search.split(",")
+    }else{
+    //如果没有，则定义searchArr为一个空的数组
+        searchArr = [];
+    }
+    //把存储的数据显示出来作为搜索历史
+    MapSearchArr();
+    function add_search(){
+        var val = $(".searchInput").val();
+        if (val.length>=2){
+            //点击搜索按钮时，去重
+            KillRepeat(val);
+            //去重后把数组存储到浏览器localStorage
+            localStorage.search = searchArr;
+            //然后再把搜索内容显示出来
+            MapSearchArr();
+        }
+        window.location.href=search_url+'?q='+val+"&s_type="+$(".searchItem.current").attr('data-type')
+    }
+    function MapSearchArr(){
+        var tmpHtml = "";
+        var arrLen = 0
+        if (searchArr.length >= 5){
+            arrLen = 5
+        }else {
+            arrLen = searchArr.length
+        }
+        for (var i=0;i<arrLen;i++){
+            tmpHtml += '<a href="'+search_url+'?q='+searchArr[i]+'">'+searchArr[i]+'</a>'
+        }
+        $(".mysearch .all-search").html(tmpHtml);
+    }
+    //去重
+    function KillRepeat(val){
+        var kill = 0;
+        for (var i=0;i<searchArr.length;i++){
+            if(val===searchArr[i]){
+                kill ++;
+            }
+        }
+        if(kill<1){
+            searchArr.unshift(val);
+        }else {
+            removeByValue(searchArr, val)
+            searchArr.unshift(val)
+        }
+    }
+</script>
+</html>
